@@ -67,8 +67,7 @@ extension PlanetView {
         
         switch gesture.state {
         case .began:
-            stopAutoRotation()
-            stopInertiaScrolling()
+            stopAnimationEngine()  // 停止所有动画
             isUserInteracting = true
             
         case .changed:
@@ -164,7 +163,7 @@ extension PlanetView {
         
         switch gesture.state {
         case .began:
-            stopAutoRotation()
+            stopAnimationEngine()  // 停止所有动画
             isUserInteracting = true
             
         case .changed:
@@ -183,42 +182,142 @@ extension PlanetView {
     }
 }
 
-// MARK: - 自动旋转控制
+// MARK: - 🚀 基于 CADisplayLink 的高性能动画引擎
 
 extension PlanetView {
     
-    /// 开始自动旋转（如果配置允许）
+    /// 开始动画引擎（如果配置允许）
     internal func startAutoRotationIfNeeded() {
         guard configuration.animation.autoRotation.isEnabled && !isUserInteracting else { return }
-        startAutoRotation()
+        startAnimationEngine(with: .autoRotation)
     }
     
-    /// 开始自动旋转
-    private func startAutoRotation() {
-        guard autoRotationTimer == nil else { return }
+    /// 启动动画引擎
+    /// - Parameter state: 动画状态
+    private func startAnimationEngine(with state: AnimationState) {
+        guard displayLink == nil else {
+            animationState = state
+            return
+        }
         
-        let frameRate = configuration.animation.autoRotation.frameRate
+        animationState = state
+        lastFrameTime = CACurrentMediaTime()
         
-        autoRotationTimer = Timer.scheduledTimer(withTimeInterval: frameRate, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+        // 🔑 创建与屏幕刷新率同步的 CADisplayLink
+        displayLink = CADisplayLink(target: self, selector: #selector(animationFrameUpdate))
+        displayLink?.preferredFramesPerSecond = 0  // 使用屏幕最大刷新率
+        displayLink?.add(to: .main, forMode: .common)
+        
+        print("🎬 动画引擎启动 - 状态: \(state)")
+    }
+    
+    /// 停止动画引擎
+    internal func stopAnimationEngine() {
+        displayLink?.invalidate()
+        displayLink = nil
+        animationState = .idle
+        customAnimationData = nil
+        
+        print("⏹️ 动画引擎停止")
+    }
+    
+    
+    /// 判断是否应该继续动画
+    internal func shouldContinueAnimation() -> Bool {
+        switch animationState {
+        case .idle:
+            return false
             
-            // 🔑 Swift 6 修复：使用 MainActor 确保在主线程执行
-            Task { @MainActor in
-                guard !self.isUserInteracting,
-                      !self.isInertiaScrolling else { return }
-                
-                // 应用自动旋转
-                let autoRotationQuaternion = Quaternion(axis: self.autoRotationAxis, angle: self.autoRotationSpeed)
-                self.currentRotation = autoRotationQuaternion.multiply(self.currentRotation).normalized()
-                self.updateAllLabelPositions()
-            }
+        case .autoRotation:
+            return configuration.animation.autoRotation.isEnabled && !isUserInteracting && !isInertiaScrolling
+            
+        case .inertiaScrolling:
+            return isInertiaScrolling
+            
+        case .customAnimation:
+            return customAnimationData != nil
         }
     }
     
-    /// 停止自动旋转
+    /// 更新自动旋转
+    internal func updateAutoRotation(deltaTime: TimeInterval) {
+        // 计算每帧旋转角度（基于实际时间间隔）
+        let rotationAngleThisFrame = autoRotationSpeed * CGFloat(deltaTime * 60.0)  // 归一化到60FPS
+        let autoRotationQuaternion = Quaternion(axis: autoRotationAxis, angle: rotationAngleThisFrame)
+        
+        currentRotation = autoRotationQuaternion.multiply(currentRotation).normalized()
+        updateAllLabelPositions()
+    }
+    
+    /// 更新惯性滚动
+    internal func updateInertiaScrolling(deltaTime: TimeInterval) {
+        let inertiaConfig = configuration.animation.gestureResponse.inertia
+        
+        // 应用惯性旋转
+        let rotationAxis = Vector3(x: inertiaVelocity.y, y: inertiaVelocity.x, z: 0).normalized()
+        let rotationAngle = sqrt(inertiaVelocity.x * inertiaVelocity.x + inertiaVelocity.y * inertiaVelocity.y)
+        
+        if rotationAngle > 0.001 {
+            // 基于实际时间间隔计算旋转
+            let frameNormalizedAngle = rotationAngle * CGFloat(deltaTime * 60.0)
+            let inertiaQuaternion = Quaternion(axis: rotationAxis, angle: frameNormalizedAngle)
+            currentRotation = inertiaQuaternion.multiply(currentRotation).normalized()
+            
+            // 在惯性滚动过程中也更新自动旋转方向
+            if configuration.animation.autoRotation.rememberGestureDirection {
+                updateAutoRotationDirection(from: rotationAxis, angle: rotationAngle)
+            }
+        }
+        
+        // 速度衰减（基于时间间隔）
+        let decayFactor = pow(inertiaConfig.decayRate, CGFloat(deltaTime * 60.0))
+        inertiaVelocity.x *= decayFactor
+        inertiaVelocity.y *= decayFactor
+        
+        // 更新显示
+        updateAllLabelPositions()
+        
+        // 检查是否停止
+        let velocityMagnitude = sqrt(inertiaVelocity.x * inertiaVelocity.x + inertiaVelocity.y * inertiaVelocity.y)
+        if velocityMagnitude < inertiaConfig.stopThreshold {
+            stopInertiaScrolling()
+        }
+    }
+    
+    /// 更新自定义动画
+    internal func updateCustomAnimation(currentTime: TimeInterval) {
+        guard let animData = customAnimationData else {
+            animationState = .idle
+            return
+        }
+        
+        let progress = animData.progress(at: currentTime)
+        
+        if progress >= 1.0 {
+            // 动画完成
+            currentRotation = animData.targetRotation
+            currentScale = animData.targetScale
+            
+            let completion = animData.completion
+            customAnimationData = nil
+            animationState = .idle
+            
+            updateAllLabelPositions()
+            completion?()
+        } else {
+            // 插值更新
+            currentRotation = animData.startRotation.slerp(to: animData.targetRotation, t: progress)
+            currentScale = PlanetMath.lerp(animData.startScale, animData.targetScale, t: progress)
+            
+            updateAllLabelPositions()
+        }
+    }
+    
+    /// 停止自动旋转（兼容旧接口）
     internal func stopAutoRotation() {
-        autoRotationTimer?.invalidate()
-        autoRotationTimer = nil
+        if animationState == .autoRotation {
+            stopAnimationEngine()
+        }
     }
     
     /// 更新自动旋转方向
@@ -245,69 +344,27 @@ extension PlanetView {
     }
 }
 
-// MARK: - 惯性滚动
+// MARK: - 惯性滚动控制
 
 extension PlanetView {
     
     /// 开始惯性滚动
     /// - Parameter velocity: 手势速度
     private func startInertiaScrolling(velocity: CGPoint) {
-        // Remove unused variable
-        // let inertiaConfig = configuration.animation.gestureResponse.inertia
-        
         isInertiaScrolling = true
         inertiaVelocity = CGPoint(
             x: velocity.x * 0.0001,
             y: velocity.y * 0.0001
         )
         
-        animateInertiaScrolling()
+        // 使用动画引擎管理惯性滚动
+        startAnimationEngine(with: .inertiaScrolling)
     }
     
     /// 停止惯性滚动
     private func stopInertiaScrolling() {
         isInertiaScrolling = false
-    }
-    
-    /// 惯性动画循环
-    private func animateInertiaScrolling() {
-        guard isInertiaScrolling else { return }
-        
-        let inertiaConfig = configuration.animation.gestureResponse.inertia
-        _ = configuration.animation.gestureResponse.rotationSensitivity
-        
-        // 应用惯性旋转
-        let rotationAxis = Vector3(x: inertiaVelocity.y, y: inertiaVelocity.x, z: 0).normalized()
-        let rotationAngle = sqrt(inertiaVelocity.x * inertiaVelocity.x + inertiaVelocity.y * inertiaVelocity.y)
-        
-        if rotationAngle > 0.001 {
-            let inertiaQuaternion = Quaternion(axis: rotationAxis, angle: rotationAngle)
-            currentRotation = inertiaQuaternion.multiply(currentRotation).normalized()
-            
-            // 在惯性滚动过程中也更新自动旋转方向
-            if configuration.animation.autoRotation.rememberGestureDirection {
-                updateAutoRotationDirection(from: rotationAxis, angle: rotationAngle)
-            }
-        }
-        
-        // 速度衰减
-        inertiaVelocity.x *= inertiaConfig.decayRate
-        inertiaVelocity.y *= inertiaConfig.decayRate
-        
-        // 更新显示
-        updateAllLabelPositions()
-        
-        // 检查是否停止
-        let velocityMagnitude = sqrt(inertiaVelocity.x * inertiaVelocity.x + inertiaVelocity.y * inertiaVelocity.y)
-        if velocityMagnitude < inertiaConfig.stopThreshold {
-            stopInertiaScrolling()
-            startAutoRotationIfNeeded()
-        } else {
-            // 继续动画
-            DispatchQueue.main.asyncAfter(deadline: .now() + inertiaConfig.frameRate) { [weak self] in
-                self?.animateInertiaScrolling()
-            }
-        }
+        // 动画引擎会在下一帧自动检测并停止
     }
 }
 
@@ -315,7 +372,7 @@ extension PlanetView {
 
 public extension PlanetView {
     
-    /// 动画到指定旋转
+    /// 动画到指定旋转 - 使用高性能 CADisplayLink 引擎
     /// - Parameters:
     ///   - targetRotation: 目标旋转四元数
     ///   - duration: 动画时长
@@ -325,45 +382,24 @@ public extension PlanetView {
         duration: TimeInterval,
         completion: (() -> Void)? = nil
     ) {
-        stopAutoRotation()
+        stopAnimationEngine()
         
-        let startRotation = currentRotation
-        let startTime = CACurrentMediaTime()
+        // 创建自定义动画数据
+        customAnimationData = CustomAnimationData(
+            startRotation: currentRotation,
+            targetRotation: targetRotation,
+            startScale: currentScale,
+            targetScale: currentScale,
+            startTime: CACurrentMediaTime(),
+            duration: duration,
+            completion: completion
+        )
         
-        let animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
-            
-            let elapsed = CACurrentMediaTime() - startTime
-            let progress = min(1.0, elapsed / duration)
-            
-            Task { @MainActor in
-                // 使用球面线性插值
-                let interpolatedRotation = startRotation.slerp(to: targetRotation, t: CGFloat(progress))
-                self.currentRotation = interpolatedRotation
-                self.updateAllLabelPositions()
-            }
-            
-            if progress >= 1.0 {
-                timer.invalidate()
-                Task { @MainActor in
-                    self.startAutoRotationIfNeeded()
-                    completion?()
-                }
-//                DispatchQueue.main.async {
-//                }
-            }
-        }
-        
-        // 保持对定时器的引用，避免被释放
-//        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
-//            animationTimer.invalidate()
-//        }
+        // 启动动画引擎
+        startAnimationEngine(with: .customAnimation)
     }
     
-    /// 动画到指定缩放
+    /// 动画到指定缩放 - 使用高性能 CADisplayLink 引擎
     /// - Parameters:
     ///   - targetScale: 目标缩放比例
     ///   - duration: 动画时长
@@ -373,33 +409,21 @@ public extension PlanetView {
         duration: TimeInterval,
         completion: (() -> Void)? = nil
     ) {
-        let startScale = currentScale
-        let startTime = CACurrentMediaTime()
+        stopAnimationEngine()
         
-        let animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
-            
-            let elapsed = CACurrentMediaTime() - startTime
-            let progress = min(1.0, elapsed / duration)
-            
-            Task { @MainActor in
-                // 线性插值缩放
-                let interpolatedScale = PlanetMath.lerp(startScale, targetScale, t: CGFloat(progress))
-                self.setScale(interpolatedScale)
-            }
-            
-            if progress >= 1.0 {
-                timer.invalidate()
-            }
-        }
+        // 创建自定义动画数据
+        customAnimationData = CustomAnimationData(
+            startRotation: currentRotation,
+            targetRotation: currentRotation,
+            startScale: currentScale,
+            targetScale: targetScale,
+            startTime: CACurrentMediaTime(),
+            duration: duration,
+            completion: completion
+        )
         
-        // 保持对定时器的引用
-//        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
-//            animationTimer.invalidate()
-//        }
+        // 启动动画引擎
+        startAnimationEngine(with: .customAnimation)
     }
     
     /// 平滑旋转到显示指定标签
@@ -441,8 +465,7 @@ public extension PlanetView {
     
     /// 暂停所有动画
     func pauseAnimations() {
-        stopAutoRotation()
-        stopInertiaScrolling()
+        stopAnimationEngine()
     }
     
     /// 恢复动画

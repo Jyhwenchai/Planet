@@ -9,6 +9,32 @@
 import UIKit
 import Combine
 
+// MARK: - 动画引擎相关类型定义
+
+/// 动画状态
+internal enum AnimationState {
+    case idle                          // 空闲状态
+    case autoRotation                 // 自动旋转
+    case inertiaScrolling            // 惯性滚动
+    case customAnimation             // 自定义动画
+}
+
+/// 自定义动画数据
+internal struct CustomAnimationData {
+    let startRotation: Quaternion
+    let targetRotation: Quaternion
+    let startScale: CGFloat
+    let targetScale: CGFloat
+    let startTime: TimeInterval
+    let duration: TimeInterval
+    let completion: (() -> Void)?
+    
+    func progress(at currentTime: TimeInterval) -> CGFloat {
+        guard duration > 0 else { return 1.0 }
+        return min(1.0, CGFloat((currentTime - startTime) / duration))
+    }
+}
+
 // MARK: - 事件回调类型定义
 
 /// 标签点击事件回调
@@ -44,7 +70,7 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     public internal(set) var currentRotation: Quaternion = .identity
     
     /// 当前缩放比例
-    public private(set) var currentScale: CGFloat = 1.0
+    public internal(set) var currentScale: CGFloat = 1.0
     
     // MARK: - @objc 手势处理方法
     
@@ -71,6 +97,35 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     /// 处理内存警告通知
     @objc internal func handleMemoryWarningNotification() {
         handleMemoryWarning()
+    }
+    
+    /// CADisplayLink 每帧更新回调 - 与屏幕刷新率完美同步
+    @objc internal func animationFrameUpdate() {
+        let currentTime = CACurrentMediaTime()
+        let deltaTime = currentTime - lastFrameTime
+        lastFrameTime = currentTime
+        
+        // 检查是否需要停止动画
+        guard shouldContinueAnimation() else {
+            stopAnimationEngine()
+            startAutoRotationIfNeeded()  // 尝试启动自动旋转
+            return
+        }
+        
+        // 根据当前状态执行对应的动画逻辑
+        switch animationState {
+        case .idle:
+            stopAnimationEngine()
+            
+        case .autoRotation:
+            updateAutoRotation(deltaTime: deltaTime)
+            
+        case .inertiaScrolling:
+            updateInertiaScrolling(deltaTime: deltaTime)
+            
+        case .customAnimation:
+            updateCustomAnimation(currentTime: currentTime)
+        }
     }
     
     // MARK: - 事件回调
@@ -106,10 +161,15 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     internal var isInertiaScrolling = false
     internal var inertiaVelocity: CGPoint = .zero
     
-    /// 自动旋转
-    internal var autoRotationTimer: Timer?
+    /// 自动旋转和动画引擎
+    internal var displayLink: CADisplayLink?
     internal var autoRotationAxis: Vector3 = Vector3.unitY
     internal var autoRotationSpeed: CGFloat = 0.005
+    
+    /// 动画状态
+    internal var animationState: AnimationState = .idle
+    internal var lastFrameTime: TimeInterval = 0
+    internal var customAnimationData: CustomAnimationData?
     
     // MARK: - 初始化
     
@@ -136,10 +196,10 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     }
     
     deinit {
-        // 🔑 修复 Swift 6 严格并发检查：使用 MainActor.assumeIsolated 安全访问
+        // 🔑 清理 CADisplayLink
         MainActor.assumeIsolated {
-            autoRotationTimer?.invalidate()
-            autoRotationTimer = nil
+            displayLink?.invalidate()
+            displayLink = nil
         }
     }
     
