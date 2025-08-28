@@ -108,7 +108,7 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
         // 检查是否需要停止动画
         guard shouldContinueAnimation() else {
             stopAnimationEngine()
-            startAutoRotationIfNeeded()  // 尝试启动自动旋转
+            // 🔧 移除这里的自动启动，避免循环启停
             return
         }
         

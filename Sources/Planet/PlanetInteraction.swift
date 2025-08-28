@@ -304,6 +304,11 @@ extension PlanetView {
             
             updateAllLabelPositions()
             completion?()
+            
+            // 🔧 自定义动画完成后，尝试重新启动自动旋转
+            DispatchQueue.main.async {
+                self.startAutoRotationIfNeeded()
+            }
         } else {
             // 插值更新
             currentRotation = animData.startRotation.slerp(to: animData.targetRotation, t: progress)
@@ -364,7 +369,10 @@ extension PlanetView {
     /// 停止惯性滚动
     private func stopInertiaScrolling() {
         isInertiaScrolling = false
-        // 动画引擎会在下一帧自动检测并停止
+        // 🔧 惯性滚动结束后，尝试重新启动自动旋转
+        DispatchQueue.main.async {
+            self.startAutoRotationIfNeeded()
+        }
     }
 }
 
