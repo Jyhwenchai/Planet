@@ -1,15 +1,17 @@
 # Planet 🌍
 
-一个强大、灵活的 iOS 星球视图组件，基于 2D CoreAnimation 技术实现 3D 交互效果。使用四元数数学和斐波那契球面分布算法，提供流畅的用户体验。
+一个强大、灵活的 iOS 星球视图组件，基于 2D CoreAnimation 技术实现 3D 交互效果。使用四元数数学和斐波那契球面分布算法，配合 **CADisplayLink** 高性能动画引擎，提供流畅的用户体验。
 
 ## ✨ 特性
 
 - 🎯 **泛型设计**: 支持任意数据类型的标签（通过协议约束）
 - 🎮 **流畅交互**: 基于四元数的 3D 旋转，支持拖拽、缩放、惯性滚动
+- 🚀 **高性能动画**: CADisplayLink 驱动的与屏幕刷新率同步的动画系统
 - 🎨 **高度自定义**: 丰富的配置选项和预设主题
-- 🚀 **优秀性能**: 内存回收、视图复用、异步渲染支持
+- ⚡ **优秀性能**: 内存回收、视图复用、异步渲染支持
 - 📱 **现代Swift**: 使用 Swift 6+ 语言特性，支持链式 API
 - 🎭 **跑马灯效果**: 内置跑马灯文本组件，支持长文本滚动
+- 🎨 **丰富视觉效果**: 支持深度效果、阴影、渐变等
 
 ## 📦 安装
 
@@ -239,6 +241,184 @@ planetView
 - `interaction` - 交互配置
 - `performance` - 性能配置
 - `layout` - 布局配置
+
+---
+
+## 🧩 配置详解（带默认值）
+
+以下所有属性均可通过 PlanetConfiguration 或链式 API 配置。
+
+- 外观 AppearanceConfig
+  - backgroundColor: 视图背景色（默认 .black）
+  - planetBackground: 星球背景配置 PlanetBackgroundConfig
+    - isVisible: 是否显示（默认 false）
+    - backgroundType: none | gradient | solid | image | custom（默认 gradient）
+    - gradientColors: 渐变颜色数组（默认灰度渐变）
+    - gradientLocations: 渐变位置（默认 [0.0, 0.7, 1.0]）
+    - gradientStartPoint/gradientEndPoint: 渐变径向起止点（默认 (0.3,0.3)->(1,1)）
+    - solidColor: 纯色（默认 20%灰）
+    - backgroundImage: 背景图（默认 nil）
+    - imageContentMode: 背景图模式（默认 .scaleAspectFill）
+  - labelStyle: 标签样式 LabelStyleConfig
+    - layoutType: textAboveCircle | textBelowCircle | textOnly | circleOnly | textLeftCircle | textRightCircle（默认 textAboveCircle）
+    - textStyle: 文本样式 TextStyleConfig
+      - font: 默认 bold 12
+      - color: 默认 .white
+      - maxWidth: 默认 80
+      - enableMarquee: 是否启用跑马灯（默认 true）
+      - marqueeConfig: MarqueeLabelConfig（详见源码）
+      - shadowConfig: 文本阴影（可选）
+    - circleStyle: 圆圈样式 CircleStyleConfig
+      - size: 默认 16
+      - borderWidth: 默认 0
+      - borderColor: 默认 .white
+      - useGradientFill: 渐变填充（默认 false）
+      - gradientColors: 渐变颜色（默认 []）
+      - shadowConfig: 圆圈阴影（可选）
+    - spacing: 间距 SpacingConfig
+      - textToCircle: 文本与圆圈间距（默认 4）
+      - labelPadding: 标签内边距（默认 4）
+      - hitTestPadding: 点击区域扩展（默认 10）
+  - depthEffects: 深度效果 DepthEffectsConfig
+    - enableBackfaceCulling: 背面剔除（默认 false）
+    - depthAlphaRange: 0.3...1.0（默认）
+    - depthScaleRange: 0.7...1.0（默认）
+    - enableDepthColorAdjustment: 根据深度调整颜色（默认 true）
+    - depthColorIntensity: 强度（默认 0.3）
+
+- 动画 AnimationConfig
+  - autoRotation: 自动旋转 AutoRotationConfig
+    - isEnabled: 是否启用（默认 true）
+    - initialAxis: 初始轴（默认 y 轴）
+    - initialSpeed: 速度（弧度/秒，默认 0.005）
+    - speedRange: 允许范围（默认 0.001...0.02）
+    - frameRate: 逻辑帧率（默认 1/60；内部使用 CADisplayLink 同步渲染）
+    - rememberGestureDirection: 手势后记忆方向（默认 true）
+  - gestureResponse: 手势响应
+    - rotationSensitivity: 旋转灵敏度（默认 0.01）
+    - inertia: 惯性 InertiaConfig
+      - isEnabled: 默认 true
+      - minimumVelocity: 触发阈值（默认 300）
+      - decayRate: 衰减系数（默认 0.95）
+      - stopThreshold: 停止阈值（默认 0.001）
+      - frameRate: 逻辑帧率（默认 1/60）
+    - scaling: 缩放 ScalingConfig
+      - isEnabled: 默认 true
+      - scaleRange: 0.5...3.0（默认）
+      - defaultScale: 默认 1.0
+      - pinchSensitivity: 捏合灵敏度（默认 1.0）
+  - clickAnimation: 点击动画 ClickAnimationConfig
+    - isEnabled: 默认 true
+    - scaleAnimation: ScaleAnimationConfig（maxScale 默认 1.3，duration 默认 0.2）
+    - colorFlash: ColorFlashConfig（isEnabled 默认 true，flashColor 默认白色，duration 默认 0.2）
+    - hapticFeedback: HapticFeedbackConfig（isEnabled 默认 true，impactStyle 默认 .medium）
+  - transitions: 过渡动画 TransitionConfig
+    - layoutDuration: 布局变化时长（默认 0.3）
+    - dataUpdateDuration: 数据更新时长（默认 0.5）
+    - animationCurve: 曲线（默认 .easeInOut）
+
+- 交互 InteractionConfig
+  - isEnabled: 是否启用交互（默认 true）
+  - supportedGestures: 支持手势集合（默认 [.pan, .tap, .pinch]）
+  - hitTesting: 点击检测 HitTestingConfig
+    - enable3DDepthTesting: 3D 深度优先（默认 true）
+    - hitAreaExpansion: 点击区域扩展（默认 10）
+    - minimumHitAreaSize: 最小点选区域（默认 44x44）
+  - selection: 选择 SelectionConfig
+    - isEnabled: 是否可选（默认 false）
+    - allowsMultipleSelection: 多选（默认 false）
+    - selectedAppearance: 选中外观（边框/缩放/透明度/时长）
+
+- 性能 PerformanceConfig
+  - rendering: 渲染 RenderingConfig
+    - enableAsyncRendering: 异步渲染（默认 false）
+    - maxConcurrentRenders: 最大并发渲染（默认 10）
+    - enableViewRecycling: 视图回收（默认 true）
+    - offscreenRenderingThreshold: 离屏阈值（默认 100）
+  - memory: 内存 MemoryConfig
+    - maxCachedViews: 最大缓存视图数（默认 50）
+    - autoClearOnMemoryWarning: 内存警告自动清理（默认 true）
+    - cacheEvictionPolicy: LRU/FIFO/Random（默认 LRU）
+
+- 布局 LayoutConfig
+  - radiusCalculation: 半径计算 RadiusCalculationConfig
+    - mode: proportionalToView | fixed | adaptive（默认 proportionalToView）
+    - proportionFactor: 比例系数（默认 0.4）
+    - fixedRadius: 固定半径（默认 150）
+    - minimumRadius/maximumRadius: 半径上下限（默认 50/500）
+  - distribution: 分布 DistributionConfig
+    - algorithm: fibonacci | random | grid | rings | custom（默认 fibonacci）
+    - customPoints: 自定义分布点
+    - randomSeed: 随机种子（可复现）
+  - projection: 投影 ProjectionConfig
+    - type: orthographic | perspective（默认 orthographic）
+    - fieldOfView: 透视 FOV（默认 60）
+    - nearClippingPlane/farClippingPlane: 近远裁剪面（默认 0.1/1000）
+
+---
+
+## 🍳 常见配方（Recipes）
+
+- 仅展示（无交互 + 自动旋转）
+```swift
+let view = PlanetView<String>()
+    .labels(keywords)
+    .interactive(false)
+    .autoRotation(enabled: true, speed: 0.006)
+```
+
+- 数据较多时的高性能模式
+```swift
+let view = PlanetView<String>()
+    .labels(manyTags)
+    .performanceMode(.highPerformance)
+    .textStyle(font: .systemFont(ofSize: 11, weight: .medium), color: .white)
+    .planetBackground(false)
+```
+
+- 标签更突出：文本+圆圈、阴影与渐变
+```swift
+let view = PlanetView<String>()
+    .labels(tags)
+    .labelLayout(.textBelowCircle)
+    .circleStyle(size: 18, borderWidth: 1, borderColor: .white)
+    .defaultColors([.systemPink, .systemTeal, .systemYellow])
+```
+
+- 自定义旋转与聚焦
+```swift
+// 自定义旋转
+let q = Quaternion(axis: Vector3.unitY, angle: .pi/3)
+planetView.animateRotation(to: q, duration: 0.6)
+
+// 聚焦第 3 个标签
+planetView.focusOnLabel(at: 2, duration: 1.0)
+```
+
+- 搜索并聚焦
+```swift
+if planetView.searchAndFocus("swift") {
+    print("已聚焦到第一个匹配项")
+}
+```
+
+- 调整缩放范围与捏合灵敏度
+```swift
+planetView
+    .scaleRange(0.8...2.0)
+    .applyPreset(.highPerformance)
+```
+
+---
+
+## 📝 重要变更
+
+- v1.x: 将所有动画从 Timer 切换为 CADisplayLink，同步到屏幕刷新，显著减少掉帧与卡顿。
+  - CADisplayLink selector 迁移至 PlanetView 主类（Swift 不允许泛型类扩展内的 @objc 方法）。
+  - 新增统一动画状态：自动旋转、惯性滚动、自定义动画。
+  - 手势交互与动画引擎整合，帧时间驱动，动画更平滑。
+
+> 要求：iOS 13+，UIKit 环境（支持在 UIKit/SwiftUI 容器中使用）。
 
 ### 数学工具
 
