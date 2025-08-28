@@ -13,6 +13,7 @@ class ViewController: UIViewController {
     private let tableView = UITableView()
     private let demoItems = [
         DemoItem(title: "基础示例", subtitle: "简单的3D星球视图", viewController: BasicExampleViewController.self),
+        DemoItem(title: "技能展示", subtitle: "个人技能星球展示", viewController: SkillExampleViewController.self),
         DemoItem(title: "城市数据", subtitle: "世界主要城市展示", viewController: CityDataViewController.self),
         DemoItem(title: "配置演示", subtitle: "动态调整星球参数", viewController: ConfigurationViewController.self),
         DemoItem(title: "动画效果", subtitle: "各种动画和交互", viewController: AnimationViewController.self)

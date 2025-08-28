@@ -358,9 +358,9 @@ public extension PlanetView {
         }
         
         // 保持对定时器的引用，避免被释放
-        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
-            animationTimer.invalidate()
-        }
+//        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
+//            animationTimer.invalidate()
+//        }
     }
     
     /// 动画到指定缩放
@@ -393,16 +393,13 @@ public extension PlanetView {
             
             if progress >= 1.0 {
                 timer.invalidate()
-                DispatchQueue.main.async {
-                    completion?()
-                }
             }
         }
         
         // 保持对定时器的引用
-        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
-            animationTimer.invalidate()
-        }
+//        Timer.scheduledTimer(withTimeInterval: duration + 0.1, repeats: false) { _ in
+//            animationTimer.invalidate()
+//        }
     }
     
     /// 平滑旋转到显示指定标签

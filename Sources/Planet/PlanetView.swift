@@ -437,6 +437,7 @@ private extension PlanetView {
         if style.enableMarquee {
             // 使用跑马灯标签
             let marqueeLayer = MarqueeTextLayer()
+            marqueeLayer.contentsScale = UIScreen.main.scale
             marqueeLayer.text = labelData.title
             marqueeLayer.textColor = style.color
             marqueeLayer.font = style.font

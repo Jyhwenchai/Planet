@@ -90,6 +90,7 @@ public class MarqueeLabel: UIView {
         self.config = config
         setupUI()
         marqueeLayer.text = text
+      marqueeLayer.contentsScale = UIScreen.main.scale
         applyConfig()
     }
     
@@ -155,7 +156,6 @@ public class MarqueeLabel: UIView {
 // MARK: - 跑马灯文本层
 
 /// 跑马灯文本层 - 核心实现
-//@MainActor
 internal class MarqueeTextLayer: CALayer {
     
     // MARK: - 属性
@@ -224,8 +224,13 @@ internal class MarqueeTextLayer: CALayer {
         }
     }
     
-    // MARK: - 私有属性
+  override var contentsScale: CGFloat {
+    didSet {
+      textLayer.contentsScale = contentsScale
+    }
+  }
     
+    // MARK: - 私有属性
     private let textLayer = CATextLayer()
     private var scrollAnimation: CAAnimation?
     private var isScrolling = false
@@ -235,7 +240,7 @@ internal class MarqueeTextLayer: CALayer {
     
     override init() {
         super.init()
-        setupTextLayer()
+      setupTextLayer()
     }
     
     required init?(coder: NSCoder) {
@@ -264,7 +269,6 @@ internal class MarqueeTextLayer: CALayer {
 //  @MainActor
     private func setupTextLayer() {
         textLayer.alignmentMode = textAlignment
-//        textLayer.contentsScale = UIScreen.main.scale
         textLayer.backgroundColor = UIColor.clear.cgColor
         textLayer.foregroundColor = textColor.cgColor
         textLayer.font = font
