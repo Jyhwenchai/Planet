@@ -47,7 +47,7 @@ class SkillExampleViewController: UIViewController {
         
         // 添加说明标签
         let instructionLabel = UILabel()
-        instructionLabel.text = "点击技能标签查看详情，长按查看描述"
+        instructionLabel.text = "点击技能标签查看详情"
         instructionLabel.textColor = .white
         instructionLabel.font = UIFont.systemFont(ofSize: 14)
         instructionLabel.textAlignment = .center
@@ -67,11 +67,6 @@ class SkillExampleViewController: UIViewController {
         // 设置点击事件
         planetView.onLabelTap = { [weak self] data, index in
             self?.showSkillDetail(skill: data)
-        }
-        
-        // 设置长按事件
-        planetView.onLabelLongPress = { [weak self] data, index in
-            self?.showSkillDescription(skill: data)
         }
     }
     
@@ -153,7 +148,7 @@ class SkillExampleViewController: UIViewController {
     private func showPlanetInfo() {
         let alert = UIAlertController(
             title: "关于我的星球",
-            message: "这是一个展示个人技能的3D星球视图，每个标签代表一项技能。你可以通过点击和长按来与标签互动。",
+            message: "这是一个展示个人技能的3D星球视图，每个标签代表一项技能。你可以点击标签查看详情。",
             preferredStyle: .alert
         )
         

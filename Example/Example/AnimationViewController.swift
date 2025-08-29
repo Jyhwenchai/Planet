@@ -199,11 +199,6 @@ class AnimationViewController: UIViewController {
             self?.showGameInfo(game, at: index)
         }
         
-        // 标签长按事件
-        planetView.onLabelLongPress = { [weak self] game, index in
-            self?.focusOnGame(at: index)
-        }
-        
         // 旋转状态改变事件
         planetView.onRotationChanged = { [weak self] rotation in
             self?.updateStatus()

@@ -37,13 +37,6 @@ public extension PlanetView {
         return self
     }
     
-    /// 流畅配置方法 - 设置标签长按回调
-    /// - Parameter handler: 长按事件处理器
-    /// - Returns: 自身实例，支持链式调用
-    func onLongPress(_ handler: @escaping LabelLongPressHandler<T>) -> Self {
-        onLabelLongPress = handler
-        return self
-    }
     
     /// 流畅配置方法 - 设置旋转状态回调
     /// - Parameter handler: 旋转状态处理器

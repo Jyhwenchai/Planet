@@ -42,11 +42,6 @@ class BasicExampleViewController: UIViewController {
         planetView.onLabelTap = { [weak self] data, index in
             self?.showAlert(title: "点击了标签", message: "标签: \(data.title)\n索引: \(index)")
         }
-        
-        // 设置长按事件
-        planetView.onLabelLongPress = { [weak self] data, index in
-            self?.showAlert(title: "长按了标签", message: "标签: \(data.title)\n描述: \(data.subtitle)")
-        }
     }
     
     private func loadSampleData() {

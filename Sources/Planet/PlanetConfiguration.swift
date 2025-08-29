@@ -345,7 +345,7 @@ public struct ScalingConfig: Sendable {
     public var isEnabled: Bool = true
     
     /// 缩放范围
-    public var scaleRange: ClosedRange<CGFloat> = 0.5...3.0
+    public var scaleRange: ClosedRange<CGFloat> = 0.3...3.0
     
     /// 默认缩放值
     public var defaultScale: CGFloat = 1.0
@@ -460,7 +460,6 @@ public enum PlanetGestureType: CaseIterable, Hashable, Sendable {
     case pan        // 拖拽旋转
     case tap        // 点击
     case pinch      // 捏合缩放
-    case longPress  // 长按
     case doubleTap  // 双击
 }
 

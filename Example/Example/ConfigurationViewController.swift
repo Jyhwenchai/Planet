@@ -72,7 +72,7 @@ class ConfigurationViewController: UIViewController {
         scaleTitleLabel.font = UIFont.boldSystemFont(ofSize: 16)
         
         // 缩放滑块
-        scaleSlider.minimumValue = 0.5
+        scaleSlider.minimumValue = 0.3
         scaleSlider.maximumValue = 2.0
         scaleSlider.value = 1.0
         scaleSlider.addTarget(self, action: #selector(scaleChanged), for: .valueChanged)

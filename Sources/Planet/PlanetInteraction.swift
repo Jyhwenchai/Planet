@@ -33,12 +33,6 @@ extension PlanetView {
             addGestureRecognizer(tapGesture)
         }
         
-        // 长按手势
-        if supportedGestures.contains(.longPress) {
-            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(longPressGestureHandler))
-            longPressGesture.minimumPressDuration = 0.5
-            addGestureRecognizer(longPressGesture)
-        }
         
         // 双击手势
         if supportedGestures.contains(.doubleTap) {
@@ -131,20 +125,6 @@ extension PlanetView {
         }
     }
     
-    /// 处理长按手势
-    internal func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        
-        let location = gesture.location(in: self)
-        let hitConfig = configuration.interaction.hitTesting
-        
-        if let hitLabelData = labelManager.labelData(at: location, config: hitConfig) {
-            // 触发长按回调
-            onLabelLongPress?(hitLabelData.originalData, hitLabelData.index)
-            
-            print("👆 标签被长按: \(hitLabelData.title)")
-        }
-    }
     
     /// 处理双击手势
     internal func handleDoubleTapGesture(_ gesture: UITapGestureRecognizer) {

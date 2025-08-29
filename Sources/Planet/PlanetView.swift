@@ -40,8 +40,6 @@ internal struct CustomAnimationData {
 /// 标签点击事件回调
 public typealias LabelTapHandler<T> = (T, Int) -> Void
 
-/// 标签长按事件回调  
-public typealias LabelLongPressHandler<T> = (T, Int) -> Void
 
 /// 旋转状态改变回调
 public typealias RotationStateHandler = (Quaternion) -> Void
@@ -82,9 +80,6 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
         handleTapGesture(gesture)
     }
     
-    @objc internal func longPressGestureHandler(_ gesture: UILongPressGestureRecognizer) {
-        handleLongPressGesture(gesture)
-    }
     
     @objc internal func doubleTapGestureHandler(_ gesture: UITapGestureRecognizer) {
         handleDoubleTapGesture(gesture)
@@ -133,8 +128,6 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     /// 标签点击事件
     public var onLabelTap: LabelTapHandler<T>?
     
-    /// 标签长按事件
-    public var onLabelLongPress: LabelLongPressHandler<T>?
     
     /// 旋转状态改变事件
     public var onRotationChanged: RotationStateHandler?

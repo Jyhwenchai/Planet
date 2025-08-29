@@ -138,15 +138,12 @@ let planetView = PlanetView<String>(configuration: config)
 ### 手势支持
 
 ```swift
-planetView.supportedGestures([.pan, .tap, .pinch, .longPress, .doubleTap])
+planetView.supportedGestures([.pan, .tap, .pinch, .doubleTap])
 
 // 配置各种事件
 planetView
     .onTap { label, index in
         print("单击: \(label)")
-    }
-    .onLongPress { label, index in
-        print("长按: \(label)")
     }
     .onRotationChanged { quaternion in
         print("旋转状态: \(quaternion)")
