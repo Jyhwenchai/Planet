@@ -221,6 +221,11 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
     internal func applyConfiguration() {
         backgroundColor = configuration.appearance.backgroundColor
         
+        // 应用自动旋转配置
+        let autoRotationConfig = configuration.animation.autoRotation
+        autoRotationAxis = autoRotationConfig.initialAxis.normalized()
+        autoRotationSpeed = autoRotationConfig.initialSpeed
+        
         // 重新创建标签管理器以应用新配置
         labelManager = PlanetLabelManager<T>(configuration: configuration)
         
@@ -236,6 +241,12 @@ public class PlanetView<T: PlanetLabelRepresentable>: UIView {
         setupGestures()
         
         setNeedsLayout()
+        
+        // 如果自动旋转被启用，重新启动动画引擎
+        if autoRotationConfig.isEnabled && !isUserInteracting {
+            stopAnimationEngine() // 停止当前动画
+            startAutoRotationIfNeeded() // 使用新配置重新启动
+        }
     }
     
     // MARK: - 布局
@@ -706,6 +717,13 @@ internal extension PlanetView {
             if let container = labelData.containerLayer {
                 container.position = labelData.screenPosition
                 container.isHidden = !labelData.isVisible
+                
+                // 应用深度效果（缩放和透明度）
+                let depthScale = labelData.currentScale
+                let depthOpacity = labelData.currentOpacity
+                
+                container.transform = CATransform3DMakeScale(depthScale, depthScale, 1.0)
+                container.opacity = depthOpacity
             }
         }
         

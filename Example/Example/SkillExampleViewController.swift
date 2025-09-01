@@ -29,13 +29,43 @@ class SkillExampleViewController: UIViewController {
         loadSkillData()
     }
     
+//  override func viewDidLayoutSubviews() {
+//    super.viewDidLayoutSubviews()
+//    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//         // 设置初始旋转状态为东南方向 - 立即生效，不需要等待自旋
+//      self.planetView.pauseAnimations()
+//      let southeastRotation = Quaternion(
+//        pitch: PlanetMath.degreesToRadians(-30), // 向下倾斜30度（更明显的透视效果）
+//        yaw: PlanetMath.degreesToRadians(50),   // 向右旋转50度（更明显的东南方向）
+//        roll: PlanetMath.degreesToRadians(5)    // 轻微滚动增加视觉效果
+//      )
+//      self.planetView.setRotation(southeastRotation)
+//        // 3. 重新启动自动旋转（从当前角度开始朝东南方向旋转）
+//      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+//        self.planetView.resumeAnimations()
+//      }
+//    }
+//  }
+    
     private func setupUI() {
         view.backgroundColor = UIColor(red: 0.05, green: 0.05, blue: 0.15, alpha: 1.0) // 深蓝色背景
         
         // 创建星球视图
         planetView = PlanetView<SkillData>()
         planetView.translatesAutoresizingMaskIntoConstraints = false
+        // 增强深度透视效果
+        planetView.configuration.appearance.depthEffects.depthScaleRange = 0.3...1.0
+        planetView.configuration.appearance.depthEffects.depthAlphaRange = 0.2...1.0
+        planetView.configuration.appearance.depthEffects.enableDepthColorAdjustment = true
+        planetView.configuration.appearance.depthEffects.depthColorIntensity = 0.4
+      planetView.configuration.animation.autoRotation.initialSpeed = 0.001
         
+        // 设置自动旋转的轴为东南方向（更明显的东南效果）
+        planetView.configuration.animation.autoRotation.initialAxis = Vector3(
+            x: 0.5,  // 东方分量
+            y: 0.5,  // 减少Y分量以增强水平旋转效果
+            z: 0.5   // 南方分量
+        ).normalized() // 归一化确保是单位向量
         view.addSubview(planetView)
         
         NSLayoutConstraint.activate([
@@ -68,9 +98,26 @@ class SkillExampleViewController: UIViewController {
         planetView.onLabelTap = { [weak self] data, index in
             self?.showSkillDetail(skill: data)
         }
+        
+        // 设置初始旋转状态为东南方向
+//        let southeastRotation = Quaternion(
+//            pitch: PlanetMath.degreesToRadians(-30), // 向下倾斜30度
+//            yaw: PlanetMath.degreesToRadians(50),   // 向右旋转50度（东南方向）
+//            roll: PlanetMath.degreesToRadians(5)    // 轻微滚动增加视觉效果
+//        )
+//        planetView.setRotation(southeastRotation)
+        
+        // 调试信息
+        print("🔧 设置初始旋转完成")
+        print("🔧 autoRotation.isEnabled: \(planetView.configuration.animation.autoRotation.isEnabled)")
+        print("🔧 currentRotation: \(planetView.currentRotation)")
     }
     
     private func loadSkillData() {
+        // 启用透视投影以增强3D效果
+        planetView.configuration.layout.projection.type = .perspective
+        planetView.configuration.layout.projection.fieldOfView = 45  // 较小的视场角增强透视效果
+        
         let colors: [UIColor] = [
             .systemRed, .systemBlue, .systemGreen, .systemOrange, .systemPurple,
             .systemTeal, .systemIndigo, .systemPink, .systemYellow, .red,
